@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to NATS: %v", err)
 	}
-	defer nc.Close()
+	defer nc.Drain()
 
 	log.Println("Connected to NATS")
 
@@ -24,25 +24,33 @@ func main() {
 	subject := "test.subject"
 	log.Printf("Subscribing to subject '%s'", subject)
 
-	_, err = nc.Subscribe(subject, func(msg *nats.Msg) {
-		log.Printf("Received message on subject '%s': %s", msg.Subject, string(msg.Data))
-	})
+	// _, err = nc.Subscribe(subject, func(msg *nats.Msg) {
+	// 	log.Printf("Received message on subject '%s': %s", msg.Subject, string(msg.Data))
+	// })
 
+	// sub, err := nc.SubscribeSync(subject)
+	// if err != nil {
+	// 	log.Fatalf("Error subscribing to subject '%s': %v", subject, err)
+	// }
+
+	// msg, err := sub.NextMsg(10 * time.Second)
+	// if err != nil {
+	// 	log.Fatalf("Error receiving message: %v", err)
+	// }
+
+	msgChannel := make(chan *nats.Msg)
+	sub, err := nc.ChanSubscribe(subject, msgChannel)
 	if err != nil {
 		log.Fatalf("Error subscribing to subject '%s': %v", subject, err)
 	}
+	defer sub.Unsubscribe()
 
 	log.Println("Listening for messages... Press Ctrl+C to exit")
 
 	// Keep the application running to receive messages
 	// In a real application, you might want a more sophisticated way to keep
 	// the application alive and handle graceful shutdown.
-	select {}
-
-	// Note: The following lines will not be reached because select{} blocks forever.
-	// This is intentional to keep the consumer running.
-	// If you need to add cleanup logic, you would typically use a signal
-	// handler to break out of the select loop.
-	// time.Sleep(10 * time.Second) // Example: keep alive for 10 seconds
-	// log.Println("Finished listening")
+	for msg := range msgChannel {
+		log.Printf("Received message on subject '%s': %s", msg.Subject, string(msg.Data))
+	}
 }
