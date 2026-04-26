@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	NatsURL = Getenv("NATS_URL", "nats://rocky10:4222")
+	NatsURL = Getenv("NATS_URL", "nats://rhel10:4222")
 )
 
 func Getenv(key, fallback string) string {
